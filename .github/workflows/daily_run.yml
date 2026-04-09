@@ -3,7 +3,7 @@ name: Ulsan Business Alarm
 on:
   schedule:
     - cron: '0 0 * * *' # 매일 아침 9시 실행
-  workflow_dispatch: # 수동 실행 버튼
+  workflow_dispatch: # 직접 실행 버튼
 
 jobs:
   build:
@@ -13,16 +13,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # 파이썬 전용 설치 로봇 호출
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
       - name: Install libraries
         run: |
-          pip install requests beautifulsoup4
+          pip install requests beautifulsoup4 lxml # lxml 부품 추가
 
       - name: Run script
         env:
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_PW: ${{ secrets.NAVER_PW }}
-        run: python ulsan_all.py
+        run: python ulsan_all.py # 파일 이름이 ulsan_all.py가 맞는지 꼭 확인!
