@@ -1,0 +1,28 @@
+name: Ulsan Business Alarm
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # UTC 기준 0시 = 한국 시간 오전 9시
+  workflow_dispatch: # 수동으로도 실행 가능하게 함
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/checkout@v3
+        with:
+          python-version: '3.9'
+
+      - name: Install libraries
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run script
+        env:
+          NAVER_ID: ${{ secrets.NAVER_ID }}
+          NAVER_PW: ${{ secrets.NAVER_PW }}
+        run: python ulsan_all.py
