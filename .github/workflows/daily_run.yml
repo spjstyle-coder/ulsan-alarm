@@ -2,18 +2,18 @@ name: Ulsan Business Alarm
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 매일 아침 9시 (한국 시간)
-  workflow_dispatch: # 직접 실행 버튼 활성화
+    - cron: '0 0 * * *' # 매일 아침 9시 실행
+  workflow_dispatch: # 수동 실행 버튼
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # 1. 코드를 가져오는 단계
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # 2. 파이썬을 설치하는 단계 (중요!)
+        uses: actions/setup-python@v5 # 파이썬 전용 설치 로봇 호출
         with:
           python-version: '3.9'
 
