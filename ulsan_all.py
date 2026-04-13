@@ -282,6 +282,8 @@ receive_emails = [
     "onej@ulsan-uic.kr",
     "doyun900@ulsan-uic.kr",
     "uic.jang@gmail.com",
+    "withnansang@gmail.com",
+    "spjstyle@naver.com",
 ]
  
 msg = MIMEText(html_content, 'html')
