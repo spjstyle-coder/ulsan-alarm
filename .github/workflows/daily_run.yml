@@ -31,4 +31,4 @@ jobs:
         env:
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_PW: ${{ secrets.NAVER_PW }}
-        run: python ulsan_all.py
+        run: python debug_html.py
