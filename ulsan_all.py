@@ -276,7 +276,7 @@ html_content = f"""
  
 naver_id = os.environ.get('NAVER_ID')
 naver_pw  = os.environ.get('NAVER_PW')
-receive_email = "onej@ulsan-uic.kr, doyou900@ulsan-uic.kr, uic.jang@gmail.com"
+receive_email = "doyou900@ulsan-uic.kr"
  
 msg = MIMEText(html_content, 'html')
 msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
