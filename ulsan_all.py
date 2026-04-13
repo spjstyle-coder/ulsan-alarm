@@ -277,21 +277,22 @@ html_content = f"""
  
 naver_id = os.environ.get('NAVER_ID')
 naver_pw  = os.environ.get('NAVER_PW')
-receive_email = ["onej@ulsan-uic.kr", 
-                "doyun900@ulsan-uic.kr", 
-                "uic.jang@gmail.com",
-                ]
-
+# ★ 수신자 목록 - 추가/삭제 여기서만 하세요 ★
+receive_emails = [
+    "onej@ulsan-uic.kr",
+    "doyun900@ulsan-uic.kr",
+    "uic.jang@gmail.com",
+]
  
 msg = MIMEText(html_content, 'html')
 msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
 msg['From'] = f"{naver_id}@naver.com"
-msg['To'] = f"{naver_id}@naver.com"  # ← 문자열로 (리스트 넣으면 오류!)
+msg['To'] = f"{naver_id}@naver.com"  # 받는 사람란엔 본인만 표시 (BCC 방식)
  
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
     server.login(naver_id, naver_pw)
-    server.sendmail(msg['From'], receive_emails, msg.as_string())  # ← 리스트 그대로
+    server.sendmail(msg['From'], receive_emails, msg.as_string())  # 전체 목록으로 발송
     server.quit()
     print("메일 발송 성공!")
 except Exception as e:
