@@ -194,6 +194,12 @@ def make_section_html(site_name, items, site_url):
         rows = '\n'.join(items)
         table_html = f'''
         <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr style="background:#f0f4fa;">
+              <th style="padding:8px 12px; text-align:left; font-size:12px; color:#555; font-weight:bold; white-space:nowrap; border-bottom:2px solid #004792;">공고일자</th>
+              <th style="padding:8px 12px; text-align:left; font-size:12px; color:#555; font-weight:bold; border-bottom:2px solid #004792;">공고명</th>
+            </tr>
+          </thead>
           <tbody>{rows}</tbody>
         </table>'''
     else:
