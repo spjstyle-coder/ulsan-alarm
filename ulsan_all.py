@@ -186,7 +186,43 @@ def scrape_ccei(driver):
     except Exception as e:
         print(f"[CCEI] 오류: {e}")
         return []
+
+def scrape_uou(driver):
+    url = "https://www.ulsan.ac.kr/kor/CMS/Board/Board.do?mCode=MN247"
+    try:
+        driver.get(url)
+        time.sleep(3)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
  
+        one_week_ago = datetime.now() - timedelta(days=7)
+        items = []
+ 
+        for a in soup.select('td.subject a'):
+            tr = a.find_parent('tr')
+            tds = tr.find_all('td') if tr else []
+            if len(tds) < 4:
+                continue
+            title = a.get_text().strip()
+            raw_date = tds[3].get_text().strip()
+            post_date = parse_date(raw_date)
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://www.ulsan.ac.kr/' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://www.ulsan.ac.kr' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UOU] 매칭 공고 수: {len(items)}")
+        return items
+    except Exception as e:
+        print(f"[UOU] 오류: {e}")
+        return []
+
  
 def make_section_html(site_name, items, site_url):
     """사이트별 섹션 HTML 생성"""
@@ -228,6 +264,7 @@ try:
     utp_items  = scrape_utp(driver)
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
+    uou_items = scrape_uou(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
@@ -245,6 +282,8 @@ uepa_html = make_section_html("울산경제일자리진흥원",
     uepa_items, "https://www.uepa.or.kr/sub/?mcode=0403010000")
 ccei_html = make_section_html("울산창조경제혁신센터",
     ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
+uou_html = make_section_html("울산대학교 산학협력",
+    uou_items, "https://www.ulsan.ac.kr/kor/CMS/Board/Board.do?mCode=MN247")
  
 html_content = f"""
 <html>
@@ -269,6 +308,7 @@ html_content = f"""
       {utp_html}
       {uepa_html}
       {ccei_html}
+      {uou_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 시스템에 의해 자동 발송되었습니다.<br>
