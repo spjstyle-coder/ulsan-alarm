@@ -2,14 +2,15 @@ name: Ulsan Business Alarm
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 매일 아침 9시 실행
+    - cron: '0 0 * * *'  # 매일 아침 9시 실행 (UTC 0시 = KST 9시)
   workflow_dispatch: # 직접 실행 버튼
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -17,12 +18,17 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
       - name: Install libraries
         run: |
-          pip install requests beautifulsoup4 lxml # lxml 부품 추가
+          pip install requests beautifulsoup4 lxml selenium webdriver-manager
 
       - name: Run script
         env:
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_PW: ${{ secrets.NAVER_PW }}
-        run: python ulsan_all.py # 파일 이름이 ulsan_all.py가 맞는지 꼭 확인!
+        run: python ulsan_all.py
