@@ -6,8 +6,24 @@ from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
-
-
+ 
+ 
+# ============================================================
+# ★ 원하는 키워드를 여기에 추가/수정 하세요 ★
+# 공고 제목에 아래 키워드 중 하나라도 포함되면 메일에 표시됩니다.
+# 키워드가 비어있으면 모든 공고를 표시합니다.
+# ============================================================
+KEYWORDS = [
+    "창업",
+    "지원사업",
+    "모집",
+    "공모",
+    "R&D",
+    "바우처",
+    "보조금",
+]
+ 
+ 
 def make_driver():
     options = Options()
     options.add_argument('--headless')
@@ -19,10 +35,9 @@ def make_driver():
                          'AppleWebKit/537.36 (KHTML, like Gecko) '
                          'Chrome/120.0.0.0 Safari/537.36')
     return webdriver.Chrome(options=options)
-
-
+ 
+ 
 def parse_date(raw):
-    """2026-04-13 또는 2026.04.13 형식 처리"""
     cleaned = re.sub(r'[^\d]', '-', raw.strip())
     cleaned = re.sub(r'-+', '-', cleaned).strip('-')
     for fmt in ('%Y-%m-%d', '%y-%m-%d'):
@@ -31,220 +46,243 @@ def parse_date(raw):
         except ValueError:
             continue
     return None
-
-
+ 
+ 
+def is_match(title):
+    """키워드 목록이 비어있으면 전부 통과, 있으면 하나라도 포함 시 통과"""
+    if not KEYWORDS:
+        return True
+    return any(kw in title for kw in KEYWORDS)
+ 
+ 
+def make_item(date_str, title, link):
+    """공고 1건을 HTML 한 줄로 만들기 (제목이 링크)"""
+    return (
+        f'<tr>'
+        f'<td style="padding:8px 12px; color:#888; white-space:nowrap; font-size:13px;">{date_str}</td>'
+        f'<td style="padding:8px 12px;">'
+        f'<a href="{link}" target="_blank" '
+        f'style="color:#004792; text-decoration:none; font-size:14px;">{title}</a>'
+        f'</td>'
+        f'</tr>'
+    )
+ 
+ 
 def scrape_utp(driver):
-    """
-    울산테크노파크
-    구조: table > tr > td.subject a (제목) + td[3] (날짜, 2026-04-13 형식)
-    """
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
     try:
         driver.get(url)
         time.sleep(3)
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-
+ 
         one_week_ago = datetime.now() - timedelta(days=7)
-        text = ""
-        count = 0
-
+        items = []
+ 
         for a in soup.select('td.subject a'):
             tr = a.find_parent('tr')
-            if not tr:
-                continue
-            tds = tr.find_all('td')
+            tds = tr.find_all('td') if tr else []
             if len(tds) < 4:
                 continue
-            name = a.get_text().strip()
+            title = a.get_text().strip()
             raw_date = tds[3].get_text().strip()
             post_date = parse_date(raw_date)
-            if post_date and post_date >= one_week_ago:
-                href = a.get('href', '')
-                # 상대경로 → 절대경로 변환
-                if href.startswith('..'):
-                    href = 'https://www.utp.or.kr/' + href.lstrip('./')
-                elif href.startswith('/'):
-                    href = 'https://www.utp.or.kr' + href
-                text += f"- [{raw_date}] {name}\n  링크: {href}\n"
-                count += 1
-
-        print(f"[UTP] 최근 7일 공고 수: {count}")
-        return text if text else "최근 일주일 내 신규 공고 없음\n"
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://www.utp.or.kr/' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://www.utp.or.kr' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UTP] 매칭 공고 수: {len(items)}")
+        return items
     except Exception as e:
-        return f"수집 중 오류: {e}\n"
-
-
+        print(f"[UTP] 오류: {e}")
+        return []
+ 
+ 
 def scrape_uepa(driver):
-    """
-    울산경제일자리진흥원
-    구조: table > tr > td.tit a (제목, href=?mcode=...&no=XXX) + td.date (날짜, 2026-04-10 형식)
-    """
     url = "https://www.uepa.or.kr/sub/?mcode=0403010000"
     try:
         driver.get(url)
         time.sleep(3)
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-
+ 
         one_week_ago = datetime.now() - timedelta(days=7)
-        text = ""
-        count = 0
-
+        items = []
+ 
         for td_date in soup.select('td.date'):
             raw_date = td_date.get_text().strip()
             post_date = parse_date(raw_date)
-            if not post_date:
+            if not post_date or post_date < one_week_ago:
                 continue
             tr = td_date.find_parent('tr')
-            if not tr:
-                continue
-            td_tit = tr.find('td', class_='tit')
-            if not td_tit:
-                continue
-            a = td_tit.find('a')
+            td_tit = tr.find('td', class_='tit') if tr else None
+            a = td_tit.find('a') if td_tit else None
             if not a:
                 continue
-            name = a.get_text().strip()
+            title = a.get_text().strip()
+            if not is_match(title):
+                continue
             href = a.get('href', '')
             if href.startswith('?'):
                 href = 'https://www.uepa.or.kr/sub/' + href
             elif href.startswith('/'):
                 href = 'https://www.uepa.or.kr' + href
-
-            if post_date >= one_week_ago:
-                text += f"- [{raw_date}] {name}\n  링크: {href}\n"
-                count += 1
-
-        print(f"[UEPA] 최근 7일 공고 수: {count}")
-        return text if text else "최근 일주일 내 신규 공고 없음\n"
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UEPA] 매칭 공고 수: {len(items)}")
+        return items
     except Exception as e:
-        return f"수집 중 오류: {e}\n"
-
-
+        print(f"[UEPA] 오류: {e}")
+        return []
+ 
+ 
 def scrape_ccei(driver):
-    """
-    울산창조경제혁신센터
-    구조: table.tbl1 > tr > td[2] a.tb_title (제목, onclick=fnDetailPage(no, ...))
-                              + td[4] (날짜, 2026.04.13 형식)
-    링크: /ulsan/custom/notice_view.do?no=XXX 로 구성
-    """
     url = "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do"
     try:
         driver.get(url)
         time.sleep(3)
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-
+ 
         table = soup.find('table', class_='tbl1')
         if not table:
-            return "수집 중 오류: tbl1 테이블을 찾을 수 없음\n"
-
+            return []
+ 
         one_week_ago = datetime.now() - timedelta(days=7)
-        text = ""
-        count = 0
-
-        for tr in table.find_all('tr')[1:]:  # 헤더(tr[0]) 제외
+        items = []
+ 
+        for tr in table.find_all('tr')[1:]:
             tds = tr.find_all('td')
             if len(tds) < 5:
                 continue
-
-            # 제목: td[2] 안의 a 태그
             a = tds[2].find('a', class_='tb_title')
             if not a:
                 continue
-            # span(새글 표시 N) 제거 후 제목 추출
             for span in a.find_all('span'):
                 span.decompose()
-            name = a.get_text().strip()
-
-            # 날짜: td[4]
+            title = a.get_text().strip()
             raw_date = tds[4].get_text().strip()
             post_date = parse_date(raw_date)
-            if not post_date:
+            if not post_date or post_date < one_week_ago:
                 continue
-
-            # onclick에서 공고 번호 추출 → 링크 구성
+            if not is_match(title):
+                continue
             onclick = a.get('onclick', '')
             nums = re.findall(r'\d+', onclick)
-            if nums:
-                link = f"https://ccei.creativekorea.or.kr/ulsan/custom/notice_view.do?no={nums[0]}"
-            else:
-                link = url
-
-            if post_date >= one_week_ago:
-                text += f"- [{raw_date}] {name}\n  링크: {link}\n"
-                count += 1
-
-        print(f"[CCEI] 최근 7일 공고 수: {count}")
-        return text if text else "최근 일주일 내 신규 공고 없음\n"
+            link = (f"https://ccei.creativekorea.or.kr/ulsan/custom/notice_view.do?no={nums[0]}"
+                    if nums else url)
+            items.append(make_item(raw_date, title, link))
+ 
+        print(f"[CCEI] 매칭 공고 수: {len(items)}")
+        return items
     except Exception as e:
-        return f"수집 중 오류: {e}\n"
-
-
+        print(f"[CCEI] 오류: {e}")
+        return []
+ 
+ 
+def make_section_html(site_name, items, site_url):
+    """사이트별 섹션 HTML 생성"""
+    if items:
+        rows = '\n'.join(items)
+        table_html = f'''
+        <table style="width:100%; border-collapse:collapse;">
+          <tbody>{rows}</tbody>
+        </table>'''
+    else:
+        table_html = '<p style="color:#999; font-size:13px; padding:8px 12px;">최근 7일 내 해당 키워드 공고 없음</p>'
+ 
+    return f'''
+    <div style="margin-bottom:24px;">
+      <div style="background:#004792; color:white; padding:8px 14px;
+                  border-radius:6px 6px 0 0; font-size:14px; font-weight:bold;">
+        <a href="{site_url}" target="_blank"
+           style="color:white; text-decoration:none;">🔗 {site_name}</a>
+      </div>
+      <div style="border:1px solid #ddd; border-top:none; border-radius:0 0 6px 6px;">
+        {table_html}
+      </div>
+    </div>'''
+ 
+ 
 # ----------------------------------------------------------------
 # 메인 실행
 # ----------------------------------------------------------------
 print("브라우저 시작...")
 driver = make_driver()
-
+ 
 try:
-    content = f"--- [최근 7일 기준] 울산 혁신기관 통합 알림 ({datetime.now().strftime('%Y-%m-%d')}) ---\n"
-    content += "\n[울산테크노파크]\n"      + scrape_utp(driver)
-    content += "\n[울산경제일자리진흥원]\n" + scrape_uepa(driver)
-    content += "\n[울산창조경제혁신센터]\n" + scrape_ccei(driver)
+    utp_items  = scrape_utp(driver)
+    uepa_items = scrape_uepa(driver)
+    ccei_items = scrape_ccei(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
-
-print("\n" + "="*50)
-print("[최종 이메일 내용 미리보기]")
-print(content)
-print("="*50)
-
-# HTML 본문
-html_body_text = content.replace('\n', '<br>')
+ 
+total = len(utp_items) + len(uepa_items) + len(ccei_items)
+today = datetime.now().strftime('%Y-%m-%d')
+keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
+ 
+print(f"\n총 매칭 공고: {total}개 (키워드: {keyword_str})")
+ 
+# 섹션별 HTML
+utp_html  = make_section_html("울산테크노파크",
+    utp_items, "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401")
+uepa_html = make_section_html("울산경제일자리진흥원",
+    uepa_items, "https://www.uepa.or.kr/sub/?mcode=0403010000")
+ccei_html = make_section_html("울산창조경제혁신센터",
+    ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
+ 
 html_content = f"""
 <html>
-<body style="font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; color: #333;">
-  <div style="max-width:600px; margin:0 auto; padding:20px;
-              border:1px solid #ddd; border-radius:8px;">
-    <h2 style="color:#004792; border-bottom:2px solid #004792; padding-bottom:10px;">
-      🚀 오늘의 울산 기업지원 통합 알림
-    </h2>
-    <p style="font-size:14px; color:#666;">
-      안녕하세요, <b>MJ 기업성장연구소</b>입니다.<br>
-      오늘({datetime.now().strftime('%Y-%m-%d')}) 업데이트된 소식을 전해드립니다.
-    </p>
-    <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-top:15px;">
-      {html_body_text}
+<body style="font-family:'Malgun Gothic',sans-serif; line-height:1.6; color:#333; background:#f4f6f8;">
+  <div style="max-width:640px; margin:0 auto; padding:24px;">
+ 
+    <div style="background:white; border-radius:10px; padding:24px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+ 
+      <h2 style="color:#004792; border-bottom:2px solid #004792;
+                 padding-bottom:10px; margin-top:0;">
+        🚀 오늘의 울산 기업지원 통합 알림
+      </h2>
+ 
+      <p style="font-size:14px; color:#555;">
+        안녕하세요, <b>MJ 기업성장연구소</b>입니다.<br>
+        <b>{today}</b> 기준 최근 7일 신규 공고 중
+        키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
+        <b style="color:#e44;">{total}건</b>을 안내드립니다.
+      </p>
+ 
+      {utp_html}
+      {uepa_html}
+      {ccei_html}
+ 
+      <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
+        본 메일은 시스템에 의해 자동 발송되었습니다.<br>
+        문의: onej@ulsan-uic.kr | MJ 기업성장연구소
+      </p>
     </div>
-    <div style="margin-top:30px; text-align:center;">
-      <a href="https://www.utp.or.kr"
-         style="background:#004792; color:white; padding:10px 20px;
-                text-decoration:none; border-radius:5px;">
-        전체 공고 확인하기
-      </a>
-    </div>
-    <footer style="margin-top:40px; font-size:12px; color:#999;
-                   text-align:center; border-top:1px solid #eee; padding-top:15px;">
-      본 메일은 시스템에 의해 자동 발송되었습니다.<br>
-      문의: onej@ulsan-uic.kr | MJ 기업성장연구소
-    </footer>
+ 
   </div>
 </body>
 </html>
 """
-
+ 
 naver_id = os.environ.get('NAVER_ID')
 naver_pw  = os.environ.get('NAVER_PW')
 receive_email = "onej@ulsan-uic.kr"
-
+ 
 msg = MIMEText(html_content, 'html')
-msg['Subject'] = f"🚀 [울산 통합알림] 오늘의 신규 지원사업 ({datetime.now().strftime('%m/%d')})"
+msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
 msg['From'] = f"{naver_id}@naver.com"
 msg['To']   = receive_email
-
+ 
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
     server.login(naver_id, naver_pw)
