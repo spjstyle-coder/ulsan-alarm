@@ -294,8 +294,13 @@ msg['To'] = f"{naver_id}@naver.com"  # 받는 사람란엔 본인만 표시 (BCC
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
     server.login(naver_id, naver_pw)
-    server.sendmail(msg['From'], receive_emails, msg.as_string())  # 전체 목록으로 발송
+    
+    for email in receive_emails:
+        msg['To'] = email  # 매번 To를 바꿔서 개별 발송
+        server.sendmail(msg['From'], email, msg.as_string())
+        print(f"발송 완료: {email}")
+    
     server.quit()
-    print("메일 발송 성공!")
+    print("전체 메일 발송 성공!")
 except Exception as e:
     print(f"발송 실패: {e}")
