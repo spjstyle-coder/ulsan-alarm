@@ -2,8 +2,8 @@ name: Ulsan Business Alarm
  
 on:
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
+    - cron: '0 0 * * *'  # 매일 아침 9시 (UTC 0시 = KST 9시)
+  workflow_dispatch:      # 수동 실행 버튼
  
 jobs:
   build:
@@ -25,21 +25,12 @@ jobs:
  
       - name: Install libraries
         run: |
-          pip install requests beautifulsoup4 lxml selenium webdriver-manager
+          pip install requests beautifulsoup4 lxml selenium
  
       - name: Run script
         env:
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_PW: ${{ secrets.NAVER_PW }}
-        run: python debug_html.py
+        run: python ulsan_all.py
  
-      # HTML 파일을 다운로드 가능하게 저장
-      - name: Upload HTML artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-dumps
-          path: |
-            utp_full.txt
-            uepa_full.txt
-            ccei_full.txt
  
