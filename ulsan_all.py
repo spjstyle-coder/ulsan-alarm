@@ -21,6 +21,7 @@ KEYWORDS = [
     "R&D",
     "바우처",
     "보조금",
+    "연구",
 ]
  
  
@@ -253,7 +254,7 @@ html_content = f"""
       </h2>
  
       <p style="font-size:14px; color:#555;">
-        안녕하세요, <b>MJ 기업성장연구소</b>입니다.<br>
+        안녕하세요, <b>UL 기업성장연구소</b>입니다.<br>
         <b>{today}</b> 기준 최근 7일 신규 공고 중
         키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
         <b style="color:#e44;">{total}건</b>을 안내드립니다.
@@ -265,7 +266,7 @@ html_content = f"""
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 시스템에 의해 자동 발송되었습니다.<br>
-        문의: onej@ulsan-uic.kr | MJ 기업성장연구소
+        문의: withnansang@ulsan-uic.kr | UL 기업성장연구소
       </p>
     </div>
  
@@ -276,7 +277,7 @@ html_content = f"""
  
 naver_id = os.environ.get('NAVER_ID')
 naver_pw  = os.environ.get('NAVER_PW')
-receive_email = "doyou900@ulsan-uic.kr"
+receive_email = "onej@ulsan-uic.kr, doyun900@ulsan-uic.kr"
  
 msg = MIMEText(html_content, 'html')
 msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
@@ -286,7 +287,7 @@ msg['To']   = receive_email
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
     server.login(naver_id, naver_pw)
-    server.sendmail(msg['From'], msg['To'], msg.as_string())
+    server.sendmail(msg['From'], receive_email.split[', '], msg.as_string())
     server.quit()
     print("메일 발송 성공!")
 except Exception as e:
