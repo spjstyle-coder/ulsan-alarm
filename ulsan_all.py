@@ -277,17 +277,21 @@ html_content = f"""
  
 naver_id = os.environ.get('NAVER_ID')
 naver_pw  = os.environ.get('NAVER_PW')
-receive_email = "onej@ulsan-uic.kr, doyun900@ulsan-uic.kr, uic.jang@gmail.com"
+receive_email = ["onej@ulsan-uic.kr", 
+                "doyun900@ulsan-uic.kr", 
+                "uic.jang@gmail.com",
+                ]
+
  
 msg = MIMEText(html_content, 'html')
 msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
 msg['From'] = f"{naver_id}@naver.com"
-msg['To']   = receive_email
+msg['To'] = f"{naver_id}@naver.com"  # ← 문자열로 (리스트 넣으면 오류!)
  
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
     server.login(naver_id, naver_pw)
-    server.sendmail(msg['From'], receive_email.split[','], msg.as_string())
+    server.sendmail(msg['From'], receive_emails, msg.as_string())  # ← 리스트 그대로
     server.quit()
     print("메일 발송 성공!")
 except Exception as e:
