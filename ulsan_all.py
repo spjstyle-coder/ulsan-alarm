@@ -22,6 +22,8 @@ KEYWORDS = [
     "바우처",
     "보조금",
     "연구",
+    "스타트업",
+    "기업지원",
 ]
  
  
@@ -319,14 +321,15 @@ html_content = f"""
  
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
-        🚀 오늘의 울산 기업지원 통합 알림
+        🚀 오늘의 울산 혁신기관 기업지원사업 통합 알림
       </h2>
  
       <p style="font-size:14px; color:#555;">
-        안녕하세요, <b>UL 기업성장연구소</b>입니다.<br>
+        안녕하세요. <b style="color:#006400;"> UL 기업성장연구소</b>입니다.<br>
         <b>{today}</b> 기준 최근 7일 신규 공고 중
         키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
-        <b style="color:#e44;">{total}건</b>을 안내드립니다.
+        <b style="color:#e44;">{total}건</b>의 지원사업을 안내드립니다.
+        <br>
       </p>
  
       {utp_html}
@@ -336,7 +339,7 @@ html_content = f"""
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 시스템에 의해 자동 발송되었습니다.<br>
-        문의: withnansang@gmail.com | UL 기업성장연구소
+        문의: withnansang@gmail.com | ULRALRA 기업성장연구소(직원: 김빌리, 장빈수)
       </p>
     </div>
  
@@ -359,7 +362,7 @@ try:
  
     for email in receive_emails:
         msg = MIMEText(html_content, 'html')
-        msg['Subject'] = f"🚀 [울산 통합알림] 키워드 매칭 공고 {total}건 ({today})"
+        msg['Subject'] = f"🚀 [울산 통합알림] 울산 혁신기관 기업지원사업 통합 알림 {total}건 ({today})"
         msg['From'] = f"{naver_id}@naver.com"
         msg['To'] = email
         server.sendmail(msg['From'], email, msg.as_string())
