@@ -186,9 +186,15 @@ def scrape_ccei(driver):
     except Exception as e:
         print(f"[CCEI] 오류: {e}")
         return []
-
-def scrape_uou(driver):
-    url = "https://www.ulsan.ac.kr/kor/CMS/Board/Board.do?mCode=MN247"
+ 
+def scrape_uipa(driver):
+    """
+    울산정보산업진흥원
+    구조: table.list_table > tr.list_tr_0
+          제목: td.subject a (data-href 속성에 링크)
+          날짜: 마지막 td
+    """
+    url = "https://uipa.or.kr/view.html?bd_id=notice&sch_bd_cate=uipa"
     try:
         driver.get(url)
         time.sleep(3)
@@ -198,31 +204,49 @@ def scrape_uou(driver):
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
  
-        for a in soup.select('td.subject a'):
-            tr = a.find_parent('tr')
-            tds = tr.find_all('td') if tr else []
-            if len(tds) < 4:
+        for tr in soup.select('tr.list_tr_0'):
+            tds = tr.find_all('td')
+            if len(tds) < 3:
+                continue
+ 
+            # 제목: td.subject 안의 a 태그 (링크는 data-href)
+            td_subject = tr.find('td', class_='subject')
+            if not td_subject:
+                continue
+            a = td_subject.find('a')
+            if not a:
                 continue
             title = a.get_text().strip()
-            raw_date = tds[3].get_text().strip()
+ 
+            # 날짜: 마지막 td
+            raw_date = tds[-1].get_text().strip()
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
             if not is_match(title):
                 continue
-            href = a.get('href', '')
-            if href.startswith('..'):
-                href = 'https://www.ulsan.ac.kr/' + href.lstrip('./')
-            elif href.startswith('/'):
-                href = 'https://www.ulsan.ac.kr' + href
-            items.append(make_item(raw_date, title, href))
  
-        print(f"[UOU] 매칭 공고 수: {len(items)}")
+            # 링크: data-href 속성 사용 (./view.html... 형태 처리)
+            data_href = a.get('data-href', '')
+            if data_href.startswith('./'):
+                link = 'https://uipa.or.kr/' + data_href[2:]
+            elif data_href.startswith('/'):
+                link = 'https://uipa.or.kr' + data_href
+            elif data_href.startswith('http'):
+                link = data_href
+            else:
+                link = url
+ 
+            items.append(make_item(raw_date, title, link))
+ 
+        print(f"[UIPA] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
-        print(f"[UOU] 오류: {e}")
+        print(f"[UIPA] 오류: {e}")
         return []
-
+ 
+ 
+ 
  
 def make_section_html(site_name, items, site_url):
     """사이트별 섹션 HTML 생성"""
@@ -264,12 +288,12 @@ try:
     utp_items  = scrape_utp(driver)
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
-    uou_items = scrape_uou(driver)
+    uipa_items = scrape_uipa(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(utp_items) + len(uepa_items) + len(ccei_items)
+total = len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
@@ -282,8 +306,8 @@ uepa_html = make_section_html("울산경제일자리진흥원",
     uepa_items, "https://www.uepa.or.kr/sub/?mcode=0403010000")
 ccei_html = make_section_html("울산창조경제혁신센터",
     ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
-uou_html = make_section_html("울산대학교 산학협력",
-    uou_items, "https://www.ulsan.ac.kr/kor/CMS/Board/Board.do?mCode=MN247")
+uipa_html = make_section_html("울산정보산업진흥원",
+    uipa_items, "https://uipa.or.kr/view.html?bd_id=notice&sch_bd_cate=uipa")
  
 html_content = f"""
 <html>
@@ -308,7 +332,7 @@ html_content = f"""
       {utp_html}
       {uepa_html}
       {ccei_html}
-      {uou_html}
+      {uipa_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 시스템에 의해 자동 발송되었습니다.<br>
@@ -328,7 +352,6 @@ receive_emails = [
     "onej@ulsan-uic.kr",
     "doyun900@ulsan-uic.kr",
     "uic.jang@gmail.com",
-    "bhin@ulsan-uic.kr",
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
