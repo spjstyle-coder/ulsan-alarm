@@ -24,10 +24,7 @@ KEYWORDS = [
     "연구",
     "스타트업",
     "기업지원",
-    "재직자",
-    "교육",
-    "역량강화",
-]
+    ]
  
  
 def make_driver():
@@ -324,16 +321,17 @@ html_content = f"""
  
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
-        🚀 오늘의 울산 혁신기관 기업지원사업 및 교육 통합 알림
+        🚀 오늘의 울산 혁신기관 기업지원사업 통합 알림
       </h2>
  
       <p style="font-size:14px; color:#555;">
         안녕하세요. <b style="color:#006400;"> 울산산학융합원</b>입니다.<br>
-        <b>{today}</b> 기준 최근 7일 신규 공고 중 기업지원과 재직자 교육 관련 키워드로 검색된
-        # 키워드 명 넣고 싶을 때 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
-        <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
+        <b>{today}</b> 기준 최근 7일 신규 공고 중 기업지원 관련 키워드로 검색된
+                <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
       </p>
+
+      # 키워드 명 넣고 싶을 때 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
 
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
