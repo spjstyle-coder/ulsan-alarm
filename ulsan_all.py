@@ -331,6 +331,10 @@ html_content = f"""
         <b style="color:#e44;">{total}건</b>의 지원사업을 안내드립니다.
         <br>
       </p>
+
+      <h2 style="color:#004792; border-bottom:2px solid #004792;
+                 padding-bottom:10px; margin-top:0;">
+      </h2>
  
       {utp_html}
       {uepa_html}
