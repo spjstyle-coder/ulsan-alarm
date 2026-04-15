@@ -2,7 +2,7 @@ name: Ulsan Business Alarm
  
 on:
   schedule:
-    - cron: '0 0 * * *'  # 매일 아침 9시 (UTC 0시 = KST 9시)
+    - cron: '20 23 * * *'  # 매일 아침 9시 (UTC 0시 = KST 9시)
   workflow_dispatch:      # 수동 실행 버튼
  
 jobs:
