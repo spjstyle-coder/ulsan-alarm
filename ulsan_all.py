@@ -325,7 +325,7 @@ html_content = f"""
       </h2>
  
       <p style="font-size:14px; color:#555;">
-        안녕하세요. <b style="color:#006400;"> UL 기업성장연구소</b>입니다.<br>
+        안녕하세요. <b style="color:#006400;"> 울산산학융합원</b>입니다.<br>
         <b>{today}</b> 기준 최근 7일 신규 공고 중
         키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
         <b style="color:#e44;">{total}건</b>의 지원사업을 안내드립니다.
@@ -342,8 +342,9 @@ html_content = f"""
       {uipa_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
-        본 메일은 시스템에 의해 자동 발송되었습니다.<br>
-        문의: withnansang@gmail.com | ULRALRA 기업성장연구소(support billy, bhin)
+        본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
+        수신을 원치 않으시면 아래의 메일로 수신거부 메일을 주시면 명단에서 제외하겠습니다.<br>
+        문의: onej@ulsan-uic.kr | 울산산학융합원 장원석 팀장(support billy, bhin)
       </p>
     </div>
  
