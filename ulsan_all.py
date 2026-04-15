@@ -282,6 +282,7 @@ def make_section_html(site_name, items, site_url):
  
 # ----------------------------------------------------------------
 # 메인 실행
+# 키워드 명 넣고 싶을 때 330 줄에 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
 # ----------------------------------------------------------------
 print("브라우저 시작...")
 driver = make_driver()
@@ -335,8 +336,7 @@ html_content = f"""
                  padding-bottom:10px; margin-top:0;">
       </h2>
 
-      # 키워드 명 넣고 싶을 때 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
- 
+      
       {utp_html}
       {uepa_html}
       {ccei_html}
