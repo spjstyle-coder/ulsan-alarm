@@ -343,7 +343,7 @@ html_content = f"""
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 시스템에 의해 자동 발송되었습니다.<br>
-        문의: withnansang@gmail.com | ULRALRA 기업성장연구소(직원: 김빌리, 장빈수)
+        문의: withnansang@gmail.com | ULRALRA 기업성장연구소(support billy, bhin)
       </p>
     </div>
  
