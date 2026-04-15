@@ -331,11 +331,11 @@ html_content = f"""
         <br>
       </p>
 
-      # 키워드 명 넣고 싶을 때 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
-
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
       </h2>
+
+      # 키워드 명 넣고 싶을 때 이부분을 넣으면 됨 : 키워드 <b style="color:#004792;">[ {keyword_str} ]</b> 관련
  
       {utp_html}
       {uepa_html}
