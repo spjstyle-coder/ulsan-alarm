@@ -25,7 +25,13 @@ KEYWORDS = [
     "스타트업",
     "기업지원",
     ]
- 
+
+# ★ 제외할 키워드 - 여기 포함된 공고는 메일에서 빠집니다 ★
+EXCLUDE_KEYWORDS = [
+    "채용",
+    "직원",
+    "입찰",
+]
  
 def make_driver():
     options = Options()
@@ -52,7 +58,10 @@ def parse_date(raw):
  
  
 def is_match(title):
-    """키워드 목록이 비어있으면 전부 통과, 있으면 하나라도 포함 시 통과"""
+    # 제외 키워드가 하나라도 포함되면 무조건 제외
+    if any(kw in title for kw in EXCLUDE_KEYWORDS):
+        return False
+    # 포함 키워드 중 하나라도 있으면 통과
     if not KEYWORDS:
         return True
     return any(kw in title for kw in KEYWORDS)
