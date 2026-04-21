@@ -83,7 +83,44 @@ def make_item(date_str, title, link):
         f'</tr>'
     )
  
+
+def scrape_uic(driver):
+    url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
+    try:
+        driver.get(url)
+        time.sleep(3)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
  
+        one_week_ago = datetime.now() - timedelta(days=7)
+        items = []
+ 
+        for a in soup.select('td.subject a'):
+            tr = a.find_parent('tr')
+            tds = tr.find_all('td') if tr else []
+            if len(tds) < 4:
+                continue
+            title = a.get_text().strip()
+            raw_date = tds[3].get_text().strip()
+            post_date = parse_date(raw_date)
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://www.ulsan-uic.kr' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UIC] 매칭 공고 수: {len(items)}")
+        return items
+    except Exception as e:
+        print(f"[UIC] 오류: {e}")
+        return []
+
+
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
     try:
@@ -301,6 +338,7 @@ print("브라우저 시작...")
 driver = make_driver()
  
 try:
+    uic_items  = scrape_uic(driver)
     utp_items  = scrape_utp(driver)
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
@@ -316,6 +354,8 @@ keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
 print(f"\n총 매칭 공고: {total}개 (키워드: {keyword_str})")
  
 # 섹션별 HTML
+uic_html  = make_section_html("울산산학융합원",
+    uic_items, "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091")
 utp_html  = make_section_html("울산테크노파크",
     utp_items, "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401")
 uepa_html = make_section_html("울산경제일자리진흥원",
@@ -339,7 +379,7 @@ html_content = f"""
       </h2>
  
       <p style="font-size:14px; color:#555;">
-        안녕하세요. <b style="color:#006400;"> 울산산학융합원</b>입니다.<br>
+        안녕하세요. <b style="color:#006400;"> 울산산학융합원 장원석 팀장</b>입니다.<br>
         <b>{today}</b> 기준 최근 7일 신규 공고 중 기업지원 관련 키워드로 검색된
                 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
@@ -372,9 +412,9 @@ naver_pw  = os.environ.get('NAVER_PW')
 # ★ 수신자 목록 - 추가/삭제 여기서만 하세요 ★
 receive_emails = [
     "onej@ulsan-uic.kr",
-    "doyun900@ulsan-uic.kr",
-    "uic.jang@gmail.com",
-    "bhin@ulsan-uic.kr", 
+    #"doyun900@ulsan-uic.kr",
+    #"uic.jang@gmail.com",
+    #"bhin@ulsan-uic.kr", 
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
