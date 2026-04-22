@@ -347,7 +347,7 @@ finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
+total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
