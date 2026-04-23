@@ -7,6 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
  
+# ★ 기존 설정 유지 ★
 KEYWORDS = ["창업", "지원사업", "모집", "공모", "R&D", "바우처", "보조금", "연구", "스타트업", "기업지원", "재직자", "재직자 교육"]
 EXCLUDE_KEYWORDS = ["채용", "직원", "입찰", "결과", "평가"]
  
@@ -29,13 +30,20 @@ def parse_date(raw):
         except ValueError:
             continue
     return None
- 
+
 def is_match(title):
     if any(kw in title for kw in EXCLUDE_KEYWORDS):
         return False
     if not KEYWORDS:
         return True
     return any(kw in title for kw in KEYWORDS)
+
+# UIC 전용 키워드 매칭 함수
+def is_match_uic(title):
+    uic_keywords = ["기업지원공고", "교육공고", "창업", "모집", "지원사업"]
+    if any(kw in title for kw in EXCLUDE_KEYWORDS):
+        return False
+    return any(kw in title for kw in uic_keywords)
  
 def make_item(date_str, title, link):
     return (
@@ -48,7 +56,7 @@ def make_item(date_str, title, link):
     )
 
 def scrape_uic_common(driver, url, site_label):
-    """UIC 게시판 수집 공통 함수"""
+    """UIC 게시판 수집 (전용 키워드 적용)"""
     try:
         driver.get(url)
         time.sleep(3)
@@ -56,8 +64,6 @@ def scrape_uic_common(driver, url, site_label):
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
-        uic_keywords = ["기업지원공고", "교육공고", "창업", "모집", "지원사업"]
- 
         for a in soup.select('td.subject a'):
             tr = a.find_parent('tr')
             tds = tr.find_all('td') if tr else []
@@ -66,13 +72,10 @@ def scrape_uic_common(driver, url, site_label):
             raw_date = tds[3].get_text().strip()
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago: continue
-            if not any(kw in title for kw in uic_keywords): continue
-            if any(kw in title for kw in EXCLUDE_KEYWORDS): continue
+            if not is_match_uic(title): continue # UIC 전용 키워드 사용
             href = a.get('href', '')
             if href.startswith('..'): href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
-            elif href.startswith('/'): href = 'https://www.ulsan-uic.kr' + href
             items.append(make_item(raw_date, title, href))
-        print(f"[{site_label}] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[{site_label}] 오류: {e}")
@@ -98,9 +101,7 @@ def scrape_utp(driver):
             if not is_match(title): continue
             href = a.get('href', '')
             if href.startswith('..'): href = 'https://www.utp.or.kr/' + href.lstrip('./')
-            elif href.startswith('/'): href = 'https://www.utp.or.kr' + href
             items.append(make_item(raw_date, title, href))
-        print(f"[UTP] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[UTP] 오류: {e}")
@@ -127,9 +128,7 @@ def scrape_uepa(driver):
             if not is_match(title): continue
             href = a.get('href', '')
             if href.startswith('?'): href = 'https://www.uepa.or.kr/sub/' + href
-            elif href.startswith('/'): href = 'https://www.uepa.or.kr' + href
             items.append(make_item(raw_date, title, href))
-        print(f"[UEPA] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[UEPA] 오류: {e}")
@@ -161,7 +160,6 @@ def scrape_ccei(driver):
             nums = re.findall(r'\d+', onclick)
             link = (f"https://ccei.creativekorea.or.kr/ulsan/custom/notice_view.do?no={nums[0]}" if nums else url)
             items.append(make_item(raw_date, title, link))
-        print(f"[CCEI] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[CCEI] 오류: {e}")
@@ -189,11 +187,8 @@ def scrape_uipa(driver):
             if not post_date or post_date < one_week_ago: continue
             if not is_match(title): continue
             data_href = a.get('data-href', '')
-            if data_href.startswith('./'): link = 'https://uipa.or.kr/' + data_href[2:]
-            elif data_href.startswith('/'): link = 'https://uipa.or.kr' + data_href
-            else: link = data_href if data_href.startswith('http') else url
+            link = f"https://uipa.or.kr/{data_href.lstrip('./')}"
             items.append(make_item(raw_date, title, link))
-        print(f"[UIPA] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[UIPA] 오류: {e}")
@@ -210,14 +205,9 @@ def make_section_html(site_name, items, site_url):
 # --- 실행부 ---
 driver = make_driver()
 try:
-    # UIC 사이트 1 (기존)
-    uic_url1 = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
-    uic_items1 = scrape_uic_common(driver, uic_url1, "UIC-사업공고")
-    
-    # UIC 사이트 2 (★ 추가하신다면 여기에 주소를 넣으세요 ★)
-    uic_url2 = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000151" 
-    uic_items2 = scrape_uic_common(driver, uic_url2, "UIC-교육공고")
-    
+    print("브라우저 시작 및 수집 중...")
+    uic_items1 = scrape_uic_common(driver, "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091", "UIC-사업공고")
+    uic_items2 = scrape_uic_common(driver, "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000082", "UIC-교육공고")
     utp_items  = scrape_utp(driver)
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
@@ -225,32 +215,37 @@ try:
 finally:
     driver.quit()
  
-# UIC 데이터 합치기
 combined_uic_items = uic_items1 + uic_items2
 total = len(combined_uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
 today = datetime.now().strftime('%Y-%m-%d')
  
-# 섹션 HTML 생성
-uic_combined_html = make_section_html("울산산학융합원(통합)", combined_uic_items, "https://www.ulsan-uic.kr/")
+uic_html  = make_section_html("울산산학융합원(통합)", combined_uic_items, "https://www.ulsan-uic.kr/")
 utp_html  = make_section_html("울산테크노파크", utp_items, "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401")
 uepa_html = make_section_html("울산경제일자리진흥원", uepa_items, "https://www.uepa.or.kr/sub/?mcode=0403010000")
 ccei_html = make_section_html("울산창조경제혁신센터", ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
 uipa_html = make_section_html("울산정보산업진흥원", uipa_items, "https://uipa.or.kr/view.html?bd_id=notice&sch_bd_cate=uipa")
-
+ 
+# ★ 기존 문구 복원 ★
 html_content = f"""
 <html>
 <body style="font-family:'Malgun Gothic',sans-serif; line-height:1.6; color:#333; background:#f4f6f8;">
   <div style="max-width:640px; margin:0 auto; padding:24px;">
     <div style="background:white; border-radius:10px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
       <h2 style="color:#004792; border-bottom:2px solid #004792; padding-bottom:10px; margin-top:0;">🚀 오늘의 울산 혁신기관 기업지원사업 통합 알림</h2>
-      <p style="font-size:14px; color:#555;">안녕하세요. <b>울산산학융합원 장원석 팀장</b>입니다.<br>
-      <b>{today}</b> 기준 최근 7일 신규 공고 중 검색된 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.</p>
-      {uic_combined_html}
+      <p style="font-size:14px; color:#555;">
+        안녕하세요. <b>울산산학융합원 장원석 팀장</b>입니다.<br>
+        <b>{today}</b> 기준 최근 7일 신규 공고 중 검색된 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.<br>
+      </p>
+      {uic_html}
       {utp_html}
       {uepa_html}
       {ccei_html}
       {uipa_html}
-      <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">문의: onej@ulsan-uic.kr | 울산산학융합원 장원석 팀장(support billy, bhin)</p>
+      <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
+        본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
+        수신을 원치 않으시면 아래의 메일로 수신거부 메일을 주시면 명단에서 제외하겠습니다.<br>
+        문의: onej@ulsan-uic.kr | 울산산학융합원 장원석 팀장(support billy, bhin)
+      </p>
     </div>
   </div>
 </body>
@@ -259,7 +254,9 @@ html_content = f"""
  
 naver_id = os.environ.get('NAVER_ID')
 naver_pw = os.environ.get('NAVER_PW')
-receive_emails = ["onej@ulsan-uic.kr"]
+
+# ★ 기존 수신자 리스트 복원 ★
+receive_emails = ["onej@ulsan-uic.kr, uic.jang@gmail.com"]
  
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
