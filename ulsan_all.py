@@ -120,6 +120,42 @@ def scrape_uic(driver):
         print(f"[UIC] 오류: {e}")
         return []
 
+def scrape_uic_2(driver):
+    # ★ 추가하려는 두 번째 사이트 주소를 여기에 넣으세요 ★
+    url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000151" 
+   try:
+        driver.get(url)
+        time.sleep(3)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+ 
+        one_week_ago = datetime.now() - timedelta(days=7)
+        items = []
+ 
+        for a in soup.select('td.subject a'):
+            tr = a.find_parent('tr')
+            tds = tr.find_all('td') if tr else []
+            if len(tds) < 4:
+                continue
+            title = a.get_text().strip()
+            raw_date = tds[3].get_text().strip()
+            post_date = parse_date(raw_date)
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://www.ulsan-uic.kr' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UIC] 매칭 공고 수: {len(items)}")
+        return items
+    except Exception as e:
+        print(f"[UIC] 오류: {e}")
+        return []
 
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
@@ -339,6 +375,7 @@ driver = make_driver()
  
 try:
     uic_items  = scrape_uic(driver)
+    uic_2_items  = scrape_uic(driver)
     utp_items  = scrape_utp(driver)
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
@@ -347,15 +384,19 @@ finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
+combined_uic_items = uic_items + uic_2_items
+total = len(combined_uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
 print(f"\n총 매칭 공고: {total}개 (키워드: {keyword_str})")
  
 # 섹션별 HTML
-uic_html  = make_section_html("울산산학융합원",
-    uic_items, "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091")
+uic_combined_html = make_section_html(
+    "울산산학융합원(통합)", 
+    combined_uic_items, 
+    "https://www.ulsan-uic.kr/"
+)
 utp_html  = make_section_html("울산테크노파크",
     utp_items, "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401")
 uepa_html = make_section_html("울산경제일자리진흥원",
@@ -390,7 +431,7 @@ html_content = f"""
       </h2>
 
       
-      {uic_html}
+      {uic_combined_html}
       {utp_html}
       {uepa_html}
       {ccei_html}
