@@ -27,7 +27,7 @@ KEYWORDS = [
     "재직자",
     "재직자 교육",
     ]
- 
+
 # ★ 제외할 키워드 - 여기 포함된 공고는 메일에서 빠집니다 ★
 EXCLUDE_KEYWORDS = [
     "채용",
@@ -83,7 +83,7 @@ def make_item(date_str, title, link):
         f'</tr>'
     )
  
- 
+
 def scrape_uic(driver):
     url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
     try:
@@ -119,8 +119,8 @@ def scrape_uic(driver):
     except Exception as e:
         print(f"[UIC] 오류: {e}")
         return []
- 
- 
+
+
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
     try:
@@ -240,29 +240,48 @@ def scrape_ccei(driver):
         return []
  
 def scrape_uipa(driver):
-    """
-    울산정보산업진흥원 - JS 렌더링 사이트라 Selenium 사용
-    URL: https://uipa.or.kr/webuser/notice/list.html
-    구조: table > tr > td[0]=번호 td[1]=분류 td[2]=제목(a) td[3]=날짜
-    """
     from bs4 import BeautifulSoup
     url = "https://uipa.or.kr/webuser/notice/list.html"
     try:
         driver.get(url)
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
- 
+
+        # ===== 진단 출력 =====
+        tables = soup.find_all("table")
+        print(f"[UIPA 진단] table 개수: {len(tables)}")
+        for i, t in enumerate(tables[:2]):
+            rows = t.find_all("tr")
+            print(f"[UIPA 진단] table[{i}] tr 개수: {len(rows)}")
+            for tr in rows[:3]:
+                tds = tr.find_all("td")
+                ths = tr.find_all("th")
+                print(f"  th수:{len(ths)} td수:{len(tds)}")
+                for j, td in enumerate(tds):
+                    a = td.find("a")
+                    print(f"    td[{j}] class={td.get("class")}: "{td.get_text().strip()[:30]}" a={a is not None}")
+        import re
+        date_pat = re.compile(r"202[0-9][.\-]\d{2}[.\-]\d{2}")
+        print(f"\n[UIPA 진단] 날짜 패턴 포함 태그:")
+        for tag in soup.find_all(string=date_pat)[:5]:
+            p = tag.parent
+            print(f"  <{p.name} class={p.get("class")}> '{tag.strip()}'")
+        # =====================
+
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
- 
         for tr in soup.select("table tr"):
             tds = tr.find_all("td")
-            if len(tds) < 4:
+            if len(tds) < 3:
                 continue
-            a = tds[2].find("a", href=True)
+            a = None
+            for td in tds:
+                a_tag = td.find("a", href=True)
+                if a_tag:
+                    a = a_tag
+                    break
             if not a:
                 continue
-            # 새글/첨부파일 아이콘 제거 후 제목 추출
             for tag in a.find_all(["img", "span"]):
                 tag.decompose()
             title = a.get_text().strip()
@@ -275,23 +294,15 @@ def scrape_uipa(driver):
             if not is_match(title):
                 continue
             href = a.get("href", "")
-            if href.startswith("http"):
-                link = href
-            elif href.startswith("/"):
-                link = "https://uipa.or.kr" + href
-            else:
-                link = url
+            link = ("https://uipa.or.kr" + href) if href.startswith("/") else href or url
             items.append(make_item(raw_date, title, link))
- 
+
         print(f"[UIPA] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[UIPA] 오류: {e}")
         return []
- 
- 
- 
- 
+
 def make_section_html(site_name, items, site_url):
     """사이트별 섹션 HTML 생성"""
     if items:
@@ -376,11 +387,11 @@ html_content = f"""
                 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
       </p>
- 
+
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
       </h2>
- 
+
       
       {utp_html}
       {uepa_html}
