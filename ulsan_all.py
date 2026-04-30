@@ -247,50 +247,42 @@ def scrape_uipa(driver):
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        # 진단: 테이블과 첫 행 구조 출력
-        tables = soup.find_all("table")
-        print("[UIPA 진단] table 개수: " + str(len(tables)))
-        for t in tables[:1]:
-            rows = t.find_all("tr")
-            print("[UIPA 진단] tr 개수: " + str(len(rows)))
-            for tr in rows[:3]:
-                tds = tr.find_all("td")
-                print("[UIPA 진단] td 개수: " + str(len(tds)))
-                for j, td in enumerate(tds):
-                    has_a = td.find("a") is not None
-                    txt = td.get_text().strip()[:25]
-                    print("  td[" + str(j) + "]: " + txt + " | a=" + str(has_a))
-
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
+
         for tr in soup.select("table tr"):
             tds = tr.find_all("td")
-            if len(tds) < 3:
+            if len(tds) < 4:
                 continue
-            a = None
-            for td in tds:
-                found = td.find("a", href=True)
-                if found:
-                    a = found
-                    break
+
+            # td[2]에서 a 태그 찾기 (href 또는 data-href 모두 허용)
+            a = tds[2].find("a")
             if not a:
                 continue
+
+            # 아이콘 제거 후 제목 추출
             for tag in a.find_all(["img", "span"]):
                 tag.decompose()
             title = a.get_text().strip()
             if not title:
                 continue
-            raw_date = tds[-1].get_text().strip()
+
+            # 날짜: td[3]
+            raw_date = tds[3].get_text().strip()
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
             if not is_match(title):
                 continue
-            href = a.get("href", "")
+
+            # 링크: href 또는 data-href
+            href = a.get("href", "") or a.get("data-href", "")
             if href.startswith("http"):
                 link = href
             elif href.startswith("/"):
                 link = "https://uipa.or.kr" + href
+            elif href.startswith("./"):
+                link = "https://uipa.or.kr/webuser/notice/" + href[2:]
             else:
                 link = url
             items.append(make_item(raw_date, title, link))
