@@ -17,6 +17,7 @@ KEYWORDS = [
     "창업",
     "지원사업",
     "모집",
+    "자금",
     "공모",
     "R&D",
     "바우처",
@@ -293,6 +294,79 @@ def scrape_uipa(driver):
         print("[UIPA] 오류: " + str(e))
         return []
 
+def scrape_uic(driver):
+    url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
+    try:
+        driver.get(url)
+        time.sleep(3)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+ 
+        one_week_ago = datetime.now() - timedelta(days=7)
+        items = []
+ 
+        for a in soup.select('td.subject a'):
+            tr = a.find_parent('tr')
+            tds = tr.find_all('td') if tr else []
+            if len(tds) < 4:
+                continue
+            title = a.get_text().strip()
+            raw_date = tds[3].get_text().strip()
+            post_date = parse_date(raw_date)
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://www.ulsan-uic.kr' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UIC] 매칭 공고 수: {len(items)}")
+        return items
+    except Exception as e:
+        print(f"[UIC] 오류: {e}")
+        return []
+
+
+def scrape_uou(driver):
+    url = "https://nexus.ulsan.ac.kr/home/board/notice"
+    try:
+        driver.get(url)
+        time.sleep(3)
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+ 
+        one_week_ago = datetime.now() - timedelta(days=7)
+        items = []
+ 
+        for a in soup.select('td.subject a'):
+            tr = a.find_parent('tr')
+            tds = tr.find_all('td') if tr else []
+            if len(tds) < 4:
+                continue
+            title = a.get_text().strip()
+            raw_date = tds[3].get_text().strip()
+            post_date = parse_date(raw_date)
+            if not post_date or post_date < one_week_ago:
+                continue
+            if not is_match(title):
+                continue
+            href = a.get('href', '')
+            if href.startswith('..'):
+                href = 'https://nexus.ulsan.ac.kr/home' + href.lstrip('./')
+            elif href.startswith('/'):
+                href = 'https://nexus.ulsan.ac.kr/home' + href
+            items.append(make_item(raw_date, title, href))
+ 
+        print(f"[UOU] 매칭 공고 수: {len(items)}")
+        return items
+    except Exception as e:
+        print(f"[UOU] 오류: {e}")
+        return []
+
 def make_section_html(site_name, items, site_url):
     """사이트별 섹션 HTML 생성"""
     if items:
@@ -336,11 +410,12 @@ try:
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
     uipa_items = scrape_uipa(driver)
+    uou_items  = scrape_uic(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items)
+total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items) + len(uou_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
@@ -357,6 +432,8 @@ ccei_html = make_section_html("울산창조경제혁신센터",
     ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
 uipa_html = make_section_html("울산정보산업진흥원",
     uipa_items, "https://uipa.or.kr/webuser/notice/list.html")
+uou_html = make_section_html("울산대학교 산학협력단",
+    uipa_items, "https://nexus.ulsan.ac.kr/home/board/notice")
  
 html_content = f"""
 <html>
@@ -388,6 +465,7 @@ html_content = f"""
       {uepa_html}
       {ccei_html}
       {uipa_html}
+      {uou_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
