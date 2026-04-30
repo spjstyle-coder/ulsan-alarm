@@ -19,7 +19,6 @@ KEYWORDS = [
     "모집",
     "자금",
     "공모",
-    "공고",
     "R&D",
     "바우처",
     "보조금",
@@ -88,27 +87,11 @@ def make_item(date_str, title, link):
 
 def scrape_uic(driver):
     from bs4 import BeautifulSoup
-    # 스크린샷 확인: ulsan-uic.kr 사업공고 페이지
     url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
     try:
         driver.get(url)
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
-
-        # 진단 출력
-        tables = soup.find_all("table")
-        print("[UIC 진단] table 개수: " + str(len(tables)))
-        print("[UIC 진단] 현재 URL: " + driver.current_url)
-        for t in tables[:1]:
-            rows = t.find_all("tr")
-            print("[UIC 진단] tr 개수: " + str(len(rows)))
-            for tr in rows[1:3]:
-                tds = tr.find_all("td")
-                print("[UIC 진단] td 개수: " + str(len(tds)))
-                for j, td in enumerate(tds[:5]):
-                    has_a = td.find("a") is not None
-                    txt = td.get_text().strip()[:25]
-                    print("  td[" + str(j) + "]: " + txt + " | a=" + str(has_a))
 
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
@@ -117,15 +100,8 @@ def scrape_uic(driver):
             tds = tr.find_all("td")
             if len(tds) < 4:
                 continue
-            # 제목 td 찾기 (a태그 있는 td)
-            a = None
-            title_idx = -1
-            for idx, td in enumerate(tds):
-                found = td.find("a")
-                if found:
-                    a = found
-                    title_idx = idx
-                    break
+            # td[1]=제목, td[3]=날짜 (진단 로그로 확인)
+            a = tds[1].find("a")
             if not a:
                 continue
             for tag in a.find_all(["img", "span"]):
@@ -133,17 +109,7 @@ def scrape_uic(driver):
             title = a.get_text().strip()
             if not title:
                 continue
-            # 날짜: 제목 다음 td들 중 날짜 형식인 것
-            import re as re2
-            date_pat = re2.compile(r"202[0-9]")
-            raw_date = ""
-            for td in tds[title_idx+1:]:
-                txt = td.get_text().strip()
-                if date_pat.search(txt) and len(txt) <= 12:
-                    raw_date = txt
-                    break
-            if not raw_date:
-                continue
+            raw_date = tds[3].get_text().strip()
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
