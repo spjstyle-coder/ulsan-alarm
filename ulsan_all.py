@@ -445,6 +445,7 @@ html_content = f"""
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
         수신을 원치 않으시면 아래의 메일로 수신거부 메일을 주시면 명단에서 제외하겠습니다.<br>
+        (이후 본 메일은 신청자에 한해 검토 후 발송예정)<br>
         문의: onej@ulsan-uic.kr | 울산산학융합원 장원석 팀장(support billy, bhin)
       </p>
     </div>
@@ -459,9 +460,9 @@ naver_pw  = os.environ.get('NAVER_PW')
 # ★ 수신자 목록 - 추가/삭제 여기서만 하세요 ★
 receive_emails = [
     "onej@ulsan-uic.kr",
-    #"doyun900@ulsan-uic.kr",
-    #"uic.jang@gmail.com",
-    #"bhin@ulsan-uic.kr", 
+    "doyun900@ulsan-uic.kr",
+    "uic.jang@gmail.com",
+    "bhin@ulsan-uic.kr", 
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
