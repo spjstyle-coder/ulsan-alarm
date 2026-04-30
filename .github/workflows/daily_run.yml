@@ -2,8 +2,10 @@ name: Ulsan Business Alarm
  
 on:
   schedule:
-    - cron: '20 23 * * *'  # 매일 아침 9시 (UTC 0시 = KST 9시)
-  workflow_dispatch:      # 수동 실행 버튼
+    # KST 기준 평일(월~금) 오전 8시 30분 발송
+    # UTC = KST - 9시간 → 08:30 KST = 23:30 UTC (전날)
+    - cron: '30 23 * * 0-4'   # UTC 일~목 23:30 = KST 월~금 08:30
+  workflow_dispatch:            # 수동 실행 버튼
  
 jobs:
   build:
@@ -32,5 +34,3 @@ jobs:
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_PW: ${{ secrets.NAVER_PW }}
         run: python ulsan_all.py
- 
- 
