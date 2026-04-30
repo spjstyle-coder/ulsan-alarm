@@ -410,7 +410,7 @@ try:
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
     uipa_items = scrape_uipa(driver)
-    uou_items  = scrape_uic(driver)
+    uou_items  = scrape_uou(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
@@ -484,9 +484,9 @@ naver_pw  = os.environ.get('NAVER_PW')
 # ★ 수신자 목록 - 추가/삭제 여기서만 하세요 ★
 receive_emails = [
     "onej@ulsan-uic.kr",
-    "doyun900@ulsan-uic.kr",
-    "uic.jang@gmail.com",
-    "bhin@ulsan-uic.kr", 
+    #"doyun900@ulsan-uic.kr",
+    #"uic.jang@gmail.com",
+    #"bhin@ulsan-uic.kr", 
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
