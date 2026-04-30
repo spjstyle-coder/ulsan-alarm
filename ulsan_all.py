@@ -259,7 +259,10 @@ def scrape_uipa(driver):
                 print(f"  th수:{len(ths)} td수:{len(tds)}")
                 for j, td in enumerate(tds):
                     a = td.find("a")
-                    print(f"    td[{j}] class={td.get("class")}: "{td.get_text().strip()[:30]}" a={a is not None}")
+                    cls = str(td.get("class", ""))
+                    txt = td.get_text().strip()[:30]
+                    has_a = (a is not None)
+                    print("    td[" + str(j) + "] class=" + cls + ": " + repr(txt) + " a=" + str(has_a))
         import re
         date_pat = re.compile(r"202[0-9][.\-]\d{2}[.\-]\d{2}")
         print(f"\n[UIPA 진단] 날짜 패턴 포함 태그:")
