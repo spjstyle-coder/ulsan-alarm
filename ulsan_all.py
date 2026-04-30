@@ -27,7 +27,7 @@ KEYWORDS = [
     "재직자",
     "재직자 교육",
     ]
-
+ 
 # ★ 제외할 키워드 - 여기 포함된 공고는 메일에서 빠집니다 ★
 EXCLUDE_KEYWORDS = [
     "채용",
@@ -83,7 +83,7 @@ def make_item(date_str, title, link):
         f'</tr>'
     )
  
-
+ 
 def scrape_uic(driver):
     url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
     try:
@@ -119,8 +119,8 @@ def scrape_uic(driver):
     except Exception as e:
         print(f"[UIC] 오류: {e}")
         return []
-
-
+ 
+ 
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
     try:
@@ -241,54 +241,46 @@ def scrape_ccei(driver):
  
 def scrape_uipa(driver):
     """
-    울산정보산업진흥원
-    구조: table.list_table > tr.list_tr_0
-          제목: td.subject a (data-href 속성에 링크)
-          날짜: 마지막 td
+    울산정보산업진흥원 - JS 렌더링 사이트라 Selenium 사용
+    URL: https://uipa.or.kr/webuser/notice/list.html
+    구조: table > tr > td[0]=번호 td[1]=분류 td[2]=제목(a) td[3]=날짜
     """
-    url = "https://uipa.or.kr/view.html?bd_id=notice&sch_bd_cate=uipa"
+    from bs4 import BeautifulSoup
+    url = "https://uipa.or.kr/webuser/notice/list.html"
     try:
         driver.get(url)
-        time.sleep(3)
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
  
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
  
-        for tr in soup.select('tr.list_tr_0'):
-            tds = tr.find_all('td')
-            if len(tds) < 3:
+        for tr in soup.select("table tr"):
+            tds = tr.find_all("td")
+            if len(tds) < 4:
                 continue
- 
-            # 제목: td.subject 안의 a 태그 (링크는 data-href)
-            td_subject = tr.find('td', class_='subject')
-            if not td_subject:
-                continue
-            a = td_subject.find('a')
+            a = tds[2].find("a", href=True)
             if not a:
                 continue
+            # 새글/첨부파일 아이콘 제거 후 제목 추출
+            for tag in a.find_all(["img", "span"]):
+                tag.decompose()
             title = a.get_text().strip()
- 
-            # 날짜: 마지막 td
+            if not title:
+                continue
             raw_date = tds[-1].get_text().strip()
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
             if not is_match(title):
                 continue
- 
-            # 링크: data-href 속성 사용 (./view.html... 형태 처리)
-            data_href = a.get('data-href', '')
-            if data_href.startswith('./'):
-                link = 'https://uipa.or.kr/' + data_href[2:]
-            elif data_href.startswith('/'):
-                link = 'https://uipa.or.kr' + data_href
-            elif data_href.startswith('http'):
-                link = data_href
+            href = a.get("href", "")
+            if href.startswith("http"):
+                link = href
+            elif href.startswith("/"):
+                link = "https://uipa.or.kr" + href
             else:
                 link = url
- 
             items.append(make_item(raw_date, title, link))
  
         print(f"[UIPA] 매칭 공고 수: {len(items)}")
@@ -363,7 +355,7 @@ uepa_html = make_section_html("울산경제일자리진흥원",
 ccei_html = make_section_html("울산창조경제혁신센터",
     ccei_items, "https://ccei.creativekorea.or.kr/ulsan/custom/notice_list.do")
 uipa_html = make_section_html("울산정보산업진흥원",
-    uipa_items, "https://uipa.or.kr/view.html?bd_id=notice&sch_bd_cate=uipa")
+    uipa_items, "https://uipa.or.kr/webuser/notice/list.html")
  
 html_content = f"""
 <html>
@@ -384,11 +376,11 @@ html_content = f"""
                 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
       </p>
-
+ 
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
       </h2>
-
+ 
       
       {utp_html}
       {uepa_html}
