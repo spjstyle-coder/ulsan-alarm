@@ -27,7 +27,7 @@ KEYWORDS = [
     "재직자",
     "재직자 교육",
     ]
-
+ 
 # ★ 제외할 키워드 - 여기 포함된 공고는 메일에서 빠집니다 ★
 EXCLUDE_KEYWORDS = [
     "채용",
@@ -83,7 +83,7 @@ def make_item(date_str, title, link):
         f'</tr>'
     )
  
-
+ 
 def scrape_uic(driver):
     url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
     try:
@@ -119,8 +119,8 @@ def scrape_uic(driver):
     except Exception as e:
         print(f"[UIC] 오류: {e}")
         return []
-
-
+ 
+ 
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
     try:
@@ -246,7 +246,7 @@ def scrape_uipa(driver):
         driver.get(url)
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
-
+ 
         # ===== 진단 출력 =====
         tables = soup.find_all("table")
         print(f"[UIPA 진단] table 개수: {len(tables)}")
@@ -270,7 +270,7 @@ def scrape_uipa(driver):
             p = tag.parent
             print(f"  <{p.name} class={p.get("class")}> '{tag.strip()}'")
         # =====================
-
+ 
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
         for tr in soup.select("table tr"):
@@ -299,13 +299,13 @@ def scrape_uipa(driver):
             href = a.get("href", "")
             link = ("https://uipa.or.kr" + href) if href.startswith("/") else href or url
             items.append(make_item(raw_date, title, link))
-
+ 
         print(f"[UIPA] 매칭 공고 수: {len(items)}")
         return items
     except Exception as e:
         print(f"[UIPA] 오류: {e}")
         return []
-
+ 
 def make_section_html(site_name, items, site_url):
     """사이트별 섹션 HTML 생성"""
     if items:
@@ -390,11 +390,11 @@ html_content = f"""
                 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
       </p>
-
+ 
       <h2 style="color:#004792; border-bottom:2px solid #004792;
                  padding-bottom:10px; margin-top:0;">
       </h2>
-
+ 
       
       {utp_html}
       {uepa_html}
