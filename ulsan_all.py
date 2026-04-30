@@ -463,6 +463,8 @@ receive_emails = [
     "doyun900@ulsan-uic.kr",
     "uic.jang@gmail.com",
     "bhin@ulsan-uic.kr", 
+    "min3032@ubpi.or.kr",
+    "ckvirus@hotmail.com",
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
