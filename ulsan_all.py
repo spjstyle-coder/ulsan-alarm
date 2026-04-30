@@ -19,6 +19,7 @@ KEYWORDS = [
     "모집",
     "자금",
     "공모",
+    "공고",
     "R&D",
     "바우처",
     "보조금",
@@ -86,41 +87,84 @@ def make_item(date_str, title, link):
  
 
 def scrape_uic(driver):
+    from bs4 import BeautifulSoup
+    # 스크린샷 확인: ulsan-uic.kr 사업공고 페이지
     url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
     try:
         driver.get(url)
-        time.sleep(3)
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
- 
+        time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        # 진단 출력
+        tables = soup.find_all("table")
+        print("[UIC 진단] table 개수: " + str(len(tables)))
+        print("[UIC 진단] 현재 URL: " + driver.current_url)
+        for t in tables[:1]:
+            rows = t.find_all("tr")
+            print("[UIC 진단] tr 개수: " + str(len(rows)))
+            for tr in rows[1:3]:
+                tds = tr.find_all("td")
+                print("[UIC 진단] td 개수: " + str(len(tds)))
+                for j, td in enumerate(tds[:5]):
+                    has_a = td.find("a") is not None
+                    txt = td.get_text().strip()[:25]
+                    print("  td[" + str(j) + "]: " + txt + " | a=" + str(has_a))
+
         one_week_ago = datetime.now() - timedelta(days=7)
         items = []
- 
-        for a in soup.select('td.subject a'):
-            tr = a.find_parent('tr')
-            tds = tr.find_all('td') if tr else []
+
+        for tr in soup.select("table tr"):
+            tds = tr.find_all("td")
             if len(tds) < 4:
                 continue
+            # 제목 td 찾기 (a태그 있는 td)
+            a = None
+            title_idx = -1
+            for idx, td in enumerate(tds):
+                found = td.find("a")
+                if found:
+                    a = found
+                    title_idx = idx
+                    break
+            if not a:
+                continue
+            for tag in a.find_all(["img", "span"]):
+                tag.decompose()
             title = a.get_text().strip()
-            raw_date = tds[3].get_text().strip()
+            if not title:
+                continue
+            # 날짜: 제목 다음 td들 중 날짜 형식인 것
+            import re as re2
+            date_pat = re2.compile(r"202[0-9]")
+            raw_date = ""
+            for td in tds[title_idx+1:]:
+                txt = td.get_text().strip()
+                if date_pat.search(txt) and len(txt) <= 12:
+                    raw_date = txt
+                    break
+            if not raw_date:
+                continue
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
             if not is_match(title):
                 continue
-            href = a.get('href', '')
-            if href.startswith('..'):
-                href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
-            elif href.startswith('/'):
-                href = 'https://www.ulsan-uic.kr' + href
-            items.append(make_item(raw_date, title, href))
- 
-        print(f"[UIC] 매칭 공고 수: {len(items)}")
+            href = a.get("href", "") or a.get("data-href", "")
+            if href.startswith("http"):
+                link = href
+            elif href.startswith("/"):
+                link = "https://www.ulsan-uic.kr" + href
+            elif href.startswith("./") or href.startswith(".."):
+                link = "https://www.ulsan-uic.kr/" + href.lstrip("./")
+            else:
+                link = url
+            items.append(make_item(raw_date, title, link))
+
+        print("[UIC] 매칭 공고 수: " + str(len(items)))
         return items
     except Exception as e:
-        print(f"[UIC] 오류: {e}")
+        print("[UIC] 오류: " + str(e))
         return []
-
 
 def scrape_utp(driver):
     url = "https://www.utp.or.kr/board/board.php?bo_table=sub0501&menu_group=4&sno=0401"
@@ -293,43 +337,6 @@ def scrape_uipa(driver):
     except Exception as e:
         print("[UIPA] 오류: " + str(e))
         return []
-
-def scrape_uic(driver):
-    url = "https://www.ulsan-uic.kr/cop/bbs/selectBoardList.do?bbsId=BBSMSTR_000000000091"
-    try:
-        driver.get(url)
-        time.sleep(3)
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
- 
-        one_week_ago = datetime.now() - timedelta(days=7)
-        items = []
- 
-        for a in soup.select('td.subject a'):
-            tr = a.find_parent('tr')
-            tds = tr.find_all('td') if tr else []
-            if len(tds) < 4:
-                continue
-            title = a.get_text().strip()
-            raw_date = tds[3].get_text().strip()
-            post_date = parse_date(raw_date)
-            if not post_date or post_date < one_week_ago:
-                continue
-            if not is_match(title):
-                continue
-            href = a.get('href', '')
-            if href.startswith('..'):
-                href = 'https://www.ulsan-uic.kr/' + href.lstrip('./')
-            elif href.startswith('/'):
-                href = 'https://www.ulsan-uic.kr' + href
-            items.append(make_item(raw_date, title, href))
- 
-        print(f"[UIC] 매칭 공고 수: {len(items)}")
-        return items
-    except Exception as e:
-        print(f"[UIC] 오류: {e}")
-        return []
-
 
 def scrape_uou(driver):
     url = "https://nexus.ulsan.ac.kr/home/board/notice"
