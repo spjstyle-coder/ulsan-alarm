@@ -406,7 +406,7 @@ ccei_html = make_section_html("울산창조경제혁신센터",
 uipa_html = make_section_html("울산정보산업진흥원",
     uipa_items, "https://uipa.or.kr/webuser/notice/list.html")
 uou_html = make_section_html("울산대학교 산학협력단",
-    uipa_items, "https://nexus.ulsan.ac.kr/home/board/notice")
+    uou_items, "https://nexus.ulsan.ac.kr/home/board/notice")
  
 html_content = f"""
 <html>
