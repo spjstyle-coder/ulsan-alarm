@@ -460,11 +460,11 @@ naver_pw  = os.environ.get('NAVER_PW')
 # ★ 수신자 목록 - 추가/삭제 여기서만 하세요 ★
 receive_emails = [
     "onej@ulsan-uic.kr",
-    "doyun900@ulsan-uic.kr",
+   # "doyun900@ulsan-uic.kr",
     "uic.jang@gmail.com",
-    "bhin@ulsan-uic.kr", 
-    "min3032@ubpi.or.kr",
-    "ckvirus@hotmail.com",
+   # "bhin@ulsan-uic.kr", 
+   # "min3032@ubpi.or.kr",
+   # "ckvirus@hotmail.com",
 ]
 try:
     server = smtplib.SMTP_SSL('smtp.naver.com', 465)
