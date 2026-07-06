@@ -30,7 +30,6 @@ KEYWORDS = [
     "기업지원",
     "재직자",
     "재직자 교육",
-    "컨설팅",
     ]
 
 # ★ 제외할 키워드 - 여기 포함된 공고는 메일에서 빠집니다 ★
@@ -467,12 +466,13 @@ try:
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
     uipa_items = scrape_uipa(driver)
-    uou_items  = scrape_uou(driver)
+    uou_items   = scrape_uou(driver)
+    unist_items = scrape_unist(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items) + len(uou_items)
+total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items) + len(uou_items) + len(unist_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
@@ -491,6 +491,8 @@ uipa_html = make_section_html("울산정보산업진흥원",
     uipa_items, "https://uipa.or.kr/webuser/notice/list.html")
 uou_html = make_section_html("울산대학교 산학협력단",
     uou_items, "https://nexus.ulsan.ac.kr/home/board/notice")
+unist_html = make_section_html("울산과학기술원(UNIST)",
+    unist_items, "https://unist.ac.kr/unist/etc/notification/notification.do")
  
 html_content = f"""
 <html>
@@ -523,12 +525,13 @@ html_content = f"""
       {ccei_html}
       {uipa_html}
       {uou_html}
+      {unist_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
         수신을 원치 않으시면 아래의 메일로 수신거부 메일을 주시면 명단에서 제외하겠습니다.<br>
         (이후 본 메일은 신청자에 한해 검토 후 발송예정)<br>
-        문의 및 메일링 신청: spjstyle@naver.com
+        문의: onej@ulsan-uic.kr | 울산산학융합원 장원석 팀장(support billy, bhin)
       </p>
     </div>
  
