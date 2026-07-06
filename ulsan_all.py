@@ -95,7 +95,7 @@ def scrape_uic(driver):
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        one_week_ago = datetime.now() - timedelta(days=7)
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
 
         for tr in soup.select("table tr"):
@@ -142,7 +142,7 @@ def scrape_utp(driver):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
  
-        one_week_ago = datetime.now() - timedelta(days=7)
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
  
         for a in soup.select('td.subject a'):
@@ -179,7 +179,7 @@ def scrape_uepa(driver):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(driver.page_source, 'html.parser')
  
-        one_week_ago = datetime.now() - timedelta(days=7)
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
  
         for td_date in soup.select('td.date'):
@@ -221,7 +221,7 @@ def scrape_ccei(driver):
         if not table:
             return []
  
-        one_week_ago = datetime.now() - timedelta(days=7)
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
  
         for tr in table.find_all('tr')[1:]:
@@ -260,7 +260,7 @@ def scrape_uipa(driver):
         time.sleep(4)
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
-        one_week_ago = datetime.now() - timedelta(days=7)
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
 
         for tr in soup.select("table tr"):
@@ -307,39 +307,127 @@ def scrape_uipa(driver):
         return []
 
 def scrape_uou(driver):
+    from bs4 import BeautifulSoup
     url = "https://nexus.ulsan.ac.kr/home/board/notice"
     try:
         driver.get(url)
-        time.sleep(3)
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
- 
-        one_week_ago = datetime.now() - timedelta(days=7)
+        time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        one_week_ago = datetime.now() - timedelta(days=10)
         items = []
- 
-        for a in soup.select('td.subject a'):
-            tr = a.find_parent('tr')
-            tds = tr.find_all('td') if tr else []
-            if len(tds) < 4:
+
+        for tr in soup.select("table tr"):
+            tds = tr.find_all("td")
+            if len(tds) < 3:
                 continue
+            # a 태그 있는 td를 제목으로 사용
+            a = None
+            title_idx = -1
+            for idx, td in enumerate(tds):
+                found = td.find("a")
+                if found:
+                    title_text = found.get_text().strip()
+                    if len(title_text) > 5:  # 번호/아이콘 제외
+                        a = found
+                        title_idx = idx
+                        break
+            if not a or title_idx < 0:
+                continue
+            for tag in a.find_all(["img", "span"]):
+                tag.decompose()
             title = a.get_text().strip()
-            raw_date = tds[3].get_text().strip()
+            if not title:
+                continue
+            # 날짜: 제목 뒤 td 중 날짜 형식인 것
+            import re as _re
+            date_pat = _re.compile(r"202[0-9]")
+            raw_date = ""
+            for td in tds[title_idx + 1:]:
+                txt = td.get_text().strip()
+                if date_pat.search(txt) and len(txt) <= 12:
+                    raw_date = txt
+                    break
+            if not raw_date:
+                continue
             post_date = parse_date(raw_date)
             if not post_date or post_date < one_week_ago:
                 continue
             if not is_match(title):
                 continue
-            href = a.get('href', '')
-            if href.startswith('..'):
-                href = 'https://nexus.ulsan.ac.kr/home' + href.lstrip('./')
-            elif href.startswith('/'):
-                href = 'https://nexus.ulsan.ac.kr/home' + href
-            items.append(make_item(raw_date, title, href))
- 
-        print(f"[UOU] 매칭 공고 수: {len(items)}")
+            href = a.get("href", "") or a.get("data-href", "")
+            if href.startswith("http"):
+                link = href
+            elif href.startswith("/"):
+                link = "https://nexus.ulsan.ac.kr" + href
+            else:
+                link = url
+            items.append(make_item(raw_date, title, link))
+
+        print("[UOU] 매칭 공고 수: " + str(len(items)))
         return items
     except Exception as e:
-        print(f"[UOU] 오류: {e}")
+        print("[UOU] 오류: " + str(e))
+        return []
+
+def scrape_unist(driver):
+    from bs4 import BeautifulSoup
+    url = "https://unist.ac.kr/unist/etc/notification/notification.do"
+    try:
+        driver.get(url)
+        time.sleep(4)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        one_week_ago = datetime.now() - timedelta(days=10)
+        items = []
+
+        for tr in soup.select("table tr, ul.board-list li"):
+            # table 구조
+            tds = tr.find_all("td")
+            if len(tds) >= 3:
+                a = None
+                title_idx = -1
+                for idx, td in enumerate(tds):
+                    found = td.find("a")
+                    if found and len(found.get_text().strip()) > 5:
+                        a = found
+                        title_idx = idx
+                        break
+                if not a:
+                    continue
+                for tag in a.find_all(["img", "span"]):
+                    tag.decompose()
+                title = a.get_text().strip()
+                if not title:
+                    continue
+                import re as _re
+                date_pat = _re.compile(r"202[0-9]")
+                raw_date = ""
+                for td in tds[title_idx + 1:]:
+                    txt = td.get_text().strip()
+                    if date_pat.search(txt) and len(txt) <= 12:
+                        raw_date = txt
+                        break
+                if not raw_date:
+                    continue
+                post_date = parse_date(raw_date)
+                if not post_date or post_date < one_week_ago:
+                    continue
+                if not is_match(title):
+                    continue
+                href = a.get("href", "") or a.get("data-href", "")
+                if href.startswith("http"):
+                    link = href
+                elif href.startswith("/"):
+                    link = "https://unist.ac.kr" + href
+                else:
+                    link = url
+                items.append(make_item(raw_date, title, link))
+
+        print("[UNIST] 매칭 공고 수: " + str(len(items)))
+        return items
+    except Exception as e:
+        print("[UNIST] 오류: " + str(e))
         return []
 
 def make_section_html(site_name, items, site_url):
@@ -357,7 +445,7 @@ def make_section_html(site_name, items, site_url):
           <tbody>{rows}</tbody>
         </table>'''
     else:
-        table_html = '<p style="color:#999; font-size:13px; padding:8px 12px;">최근 7일 내 해당 키워드 공고 없음</p>'
+        table_html = '<p style="color:#999; font-size:13px; padding:8px 12px;">최근 10일 내 해당 키워드 공고 없음</p>'
  
     return f'''
     <div style="margin-bottom:24px;">
@@ -385,12 +473,13 @@ try:
     uepa_items = scrape_uepa(driver)
     ccei_items = scrape_ccei(driver)
     uipa_items = scrape_uipa(driver)
-    uou_items  = scrape_uou(driver)
+    uou_items   = scrape_uou(driver)
+    unist_items = scrape_unist(driver)
 finally:
     driver.quit()
     print("브라우저 종료")
  
-total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items) + len(uou_items)
+total = len(uic_items) + len(utp_items) + len(uepa_items) + len(ccei_items) + len(uipa_items) + len(uou_items) + len(unist_items)
 today = datetime.now().strftime('%Y-%m-%d')
 keyword_str = ', '.join(KEYWORDS) if KEYWORDS else '전체'
  
@@ -409,6 +498,8 @@ uipa_html = make_section_html("울산정보산업진흥원",
     uipa_items, "https://uipa.or.kr/webuser/notice/list.html")
 uou_html = make_section_html("울산대학교 산학협력단",
     uou_items, "https://nexus.ulsan.ac.kr/home/board/notice")
+unist_html = make_section_html("울산과학기술원(UNIST)",
+    unist_items, "https://unist.ac.kr/unist/etc/notification/notification.do")
  
 html_content = f"""
 <html>
@@ -425,7 +516,7 @@ html_content = f"""
  
       <p style="font-size:14px; color:#555;">
         안녕하세요. <b style="color:#006400;"> 울산산학융합원 장원석 팀장</b>입니다.<br>
-        <b>{today}</b> 기준 최근 7일 신규 공고 중 기업지원 관련 키워드로 검색된
+        <b>{today}</b> 기준 최근 10일 신규 공고 중 기업지원 관련 키워드로 검색된
                 <b style="color:#e44;">{total}건</b>의 정보를 안내드립니다.
         <br>
       </p>
@@ -441,6 +532,7 @@ html_content = f"""
       {ccei_html}
       {uipa_html}
       {uou_html}
+      {unist_html}
  
       <p style="font-size:12px; color:#aaa; text-align:center; margin-top:24px;">
         본 메일은 울산산학융합원의 사업에 직간접적으로 참여한 기업 담당자에게 시스템에 의해 자동 발송됩니다.<br>
@@ -482,3 +574,4 @@ try:
     print("전체 메일 발송 성공!")
 except Exception as e:
     print(f"발송 실패: {e}")
+
